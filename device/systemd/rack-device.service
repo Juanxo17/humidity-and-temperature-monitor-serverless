@@ -1,0 +1,16 @@
+[Unit]
+Description=Rack monitor IoT (DHT11 + servo -> AWS IoT)
+After=network-online.target pigpiod.service
+Wants=network-online.target
+Requires=pigpiod.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/rack-monitor/device
+ExecStart=/home/pi/.local/bin/uv run python -m rack_device.main
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

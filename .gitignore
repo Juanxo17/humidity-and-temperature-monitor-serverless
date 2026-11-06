@@ -1,0 +1,22 @@
+# Secretos: NUNCA al repositorio
+device/certs/
+*.pem
+*.pem.crt
+*.pem.key
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Varios
+*.zip
+.DS_Store
+Thumbs.db

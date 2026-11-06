@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Monitor de racks de TI: arquitectura serverless IoT",
+    "output": "arquitectura.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Cliente web"
+        },
+        "backend": {
+          "label": "Cómputo"
+        },
+        "database": {
+          "label": "Base de datos"
+        },
+        "cloud": {
+          "label": "Servicio AWS"
+        },
+        "security": {
+          "label": "Seguridad"
+        },
+        "messagebus": {
+          "label": "Broker de mensajes"
+        },
+        "external": {
+          "label": "Hardware"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "dht11",
+      "type": "external",
+      "label": "DHT11",
+      "sublabel": "sensor · GPIO4",
+      "pos": [
+        30,
+        130
+      ],
+      "size": [
+        140,
+        64
+      ]
+    },
+    {
+      "id": "servo",
+      "type": "external",
+      "label": "Servo SG90",
+      "sublabel": "compuerta · GPIO18",
+      "pos": [
+        30,
+        300
+      ],
+      "size": [
+        140,
+        64
+      ]
+    },
+    {
+      "id": "rpi",
+      "type": "backend",
+      "label": "Raspberry Pi 3",
+      "sublabel": "cliente MQTT",
+      "pos": [
+        250,
+        215
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "Usuario",
+      "sublabel": "navegador web",
+      "pos": [
+        250,
+        540
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "iot",
+      "type": "messagebus",
+      "label": "AWS IoT Core",
+      "sublabel": "broker MQTT",
+      "pos": [
+        680,
+        215
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "X.509 + política IoT"
+    },
+    {
+      "id": "rule",
+      "type": "cloud",
+      "label": "Regla IoT",
+      "sublabel": "rack_telemetry_to_dynamodb",
+      "pos": [
+        915,
+        215
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "ddb",
+      "type": "database",
+      "label": "DynamoDB",
+      "sublabel": "tabla RackTelemetry",
+      "pos": [
+        1150,
+        340
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "Amazon S3",
+      "sublabel": "dashboard Next.js estático",
+      "pos": [
+        680,
+        640
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "apigw",
+      "type": "cloud",
+      "label": "API Gateway",
+      "sublabel": "HTTP API · CORS",
+      "pos": [
+        680,
+        460
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "lambda",
+      "type": "backend",
+      "label": "Lambda rack-api",
+      "sublabel": "Python",
+      "pos": [
+        915,
+        460
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "iam",
+      "type": "security",
+      "label": "IAM",
+      "sublabel": "roles mínimo privilegio",
+      "pos": [
+        1150,
+        640
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Datacenter (on-premise)",
+      "wraps": [
+        "dht11",
+        "servo",
+        "rpi"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "AWS Cloud · us-east-1",
+      "wraps": [
+        "iot",
+        "rule",
+        "ddb",
+        "s3",
+        "apigw",
+        "lambda",
+        "iam"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "dht-to-rpi",
+      "from": "dht11",
+      "to": "rpi",
+      "label": "lectura"
+    },
+    {
+      "id": "rpi-to-servo",
+      "from": "rpi",
+      "to": "servo",
+      "label": "PWM"
+    },
+    {
+      "id": "telemetry",
+      "from": "rpi",
+      "to": "iot",
+      "label": "MQTT/TLS mutuo :8883 · datacenter/rack01/telemetry",
+      "variant": "emphasis"
+    },
+    {
+      "id": "commands",
+      "from": "iot",
+      "to": "rpi",
+      "label": "datacenter/rack01/commands",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "iot-to-rule",
+      "from": "iot",
+      "to": "rule",
+      "label": "SQL"
+    },
+    {
+      "id": "rule-to-ddb",
+      "from": "rule",
+      "to": "ddb",
+      "label": "PutItem"
+    },
+    {
+      "id": "browser-to-s3",
+      "from": "browser",
+      "to": "s3",
+      "label": "HTTPS · descarga el sitio"
+    },
+    {
+      "id": "browser-to-api",
+      "from": "browser",
+      "to": "apigw",
+      "label": "GET /readings · POST /command",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-to-lambda",
+      "from": "apigw",
+      "to": "lambda",
+      "label": "invoca"
+    },
+    {
+      "id": "lambda-to-ddb",
+      "from": "lambda",
+      "to": "ddb",
+      "label": "Query"
+    },
+    {
+      "id": "lambda-to-iot",
+      "from": "lambda",
+      "to": "iot",
+      "label": "Publish",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "iam-to-lambda",
+      "from": "iam",
+      "to": "lambda",
+      "label": "rol de ejecución",
+      "variant": "dashed"
+    }
+  ]
+}
